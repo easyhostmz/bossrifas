@@ -1,7 +1,7 @@
 import Header from "@/components/Header";
 import RaffleCard from "@/components/RaffleCard";
 import { useLotteries } from "@/hooks/useSupabaseData";
-import { Trophy, TrendingUp, Shield, Zap, Loader2, Crown } from "lucide-react";
+import { Trophy, TrendingUp, Shield, Zap, Loader2, Crown, CheckCircle, Phone, Gift, Clock } from "lucide-react";
 import logo from "@/assets/logo.png";
 
 const Index = () => {
@@ -28,21 +28,54 @@ const Index = () => {
             <span className="text-gradient">incríveis</span>
           </h1>
           <p className="mx-auto max-w-md text-muted-foreground text-base mb-6">
-            Escolha seus números da sorte e concorra a smartphones, carros e muito mais. Pagamento rápido via M-Pesa ou eMola.
+            Compre por apenas <span className="font-bold text-primary">15 MT</span> e concorra a iPhone 17 Pro Max, TV Plasma 50", Samsung A07, Tablets e Coluna JBL 320!
+          </p>
+
+          {/* Quick stats */}
+          <div className="flex flex-wrap justify-center gap-3 text-xs font-medium mb-4">
+            <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1.5">
+              🎟️ Apenas 15 MT por número
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1.5">
+              🏆 Mais de 10 prêmios nesta edição
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1.5">
+              📊 10.000 números disponíveis
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Highlight block */}
+      <section className="mx-auto max-w-[92%] md:max-w-7xl -mt-2 mb-6">
+        <div className="rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border border-primary/20 p-6 md:p-8 text-center">
+          <h2 className="text-xl md:text-2xl font-extrabold mb-3">
+            🎯 Compre por apenas <span className="text-primary">15 MT</span> e concorra a:
+          </h2>
+          <div className="flex flex-wrap justify-center gap-2 text-sm">
+            {["iPhone 17 Pro Max", "TV Plasma 50\"", "Samsung A07", "3× Samsung Tab 8", "3× Samsung Tab 9", "Coluna JBL 320"].map((prize) => (
+              <span key={prize} className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary font-semibold px-3 py-1.5 border border-primary/20">
+                🎁 {prize}
+              </span>
+            ))}
+          </div>
+          <p className="mt-4 text-sm font-bold text-primary">
+            ⚡ Quanto mais números comprar, maiores as chances!
           </p>
         </div>
       </section>
 
-      {/* Features */}
+      {/* Trust badges */}
       <section className="border-y border-border/50">
         <div className="mx-auto max-w-[92%] md:max-w-7xl py-8">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { icon: Trophy, title: "Prêmios Reais", desc: "Sorteios verificados e transparentes" },
-              { icon: TrendingUp, title: "Odds Justas", desc: "Chances reais de ganhar" },
-              { icon: Shield, title: "100% Seguro", desc: "Pagamento protegido" },
+              { icon: CheckCircle, title: "100% Transparente", desc: "Sorteios verificados publicamente" },
+              { icon: Shield, title: "Pagamento Seguro", desc: "Via M-Pesa e eMola" },
+              { icon: Phone, title: "Suporte Direto", desc: "Apoio ao cliente sempre disponível" },
+              { icon: Gift, title: "Prêmios Reais", desc: "Entregues aos vencedores" },
             ].map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="flex items-center gap-4 rounded-2xl bg-card border border-border p-4">
+              <div key={title} className="flex flex-col items-center gap-2 rounded-2xl bg-card border border-border p-4 text-center">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                   <Icon className="h-5 w-5 text-primary" />
                 </div>
@@ -53,6 +86,22 @@ const Index = () => {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Conversion phrases */}
+      <section className="mx-auto max-w-[92%] md:max-w-7xl py-6">
+        <div className="flex flex-wrap justify-center gap-3 text-sm">
+          {[
+            { icon: "🎯", text: "Garanta já o seu número" },
+            { icon: "⏳", text: "Participe antes que esgote" },
+            { icon: "🏆", text: "Pode sair hoje o seu prêmio" },
+            { icon: "📈", text: "Entre agora e aumente suas chances" },
+          ].map(({ icon, text }) => (
+            <span key={text} className="inline-flex items-center gap-1.5 rounded-xl bg-secondary/80 px-4 py-2 font-medium">
+              {icon} {text}
+            </span>
+          ))}
         </div>
       </section>
 
@@ -104,10 +153,23 @@ const Index = () => {
         )}
       </section>
 
+      {/* 18+ Notice */}
+      <section className="mx-auto max-w-[92%] md:max-w-7xl pb-6">
+        <div className="rounded-2xl border border-warning/30 bg-warning/5 p-4 text-center">
+          <p className="text-sm font-semibold text-warning">
+            🔞 Participação exclusiva para maiores de 18 anos
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Ao participar, você confirma ter 18 anos ou mais e estar de acordo com os termos e condições.
+          </p>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="border-t border-border/50 py-6">
         <div className="mx-auto max-w-[92%] md:max-w-7xl text-center text-xs text-muted-foreground">
           <p>© 2026 Boss dos Prêmios. Todos os direitos reservados.</p>
+          <p className="mt-1">🔞 Apenas para maiores de 18 anos</p>
         </div>
       </footer>
     </div>
