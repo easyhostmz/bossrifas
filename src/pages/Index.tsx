@@ -40,7 +40,7 @@ const Index = () => {
               🏆 Mais de 10 prêmios nesta edição
             </span>
             <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1.5">
-              📊 10.000 números disponíveis
+              📊 1.000.000 números disponíveis
             </span>
           </div>
         </div>
