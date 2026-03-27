@@ -74,6 +74,26 @@ const Admin = () => {
   // Filters
   const [purchaseStatusFilter, setPurchaseStatusFilter] = useState<string>("all");
   const [purchaseMethodFilter, setPurchaseMethodFilter] = useState<string>("all");
+  const [confirmingPurchase, setConfirmingPurchase] = useState<string | null>(null);
+
+  const handleConfirmPayment = async (purchaseId: string) => {
+    setConfirmingPurchase(purchaseId);
+    try {
+      const { data, error } = await supabase.functions.invoke("confirm-payment", {
+        body: { purchase_id: purchaseId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Pagamento confirmado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["all-purchases"] });
+      queryClient.invalidateQueries({ queryKey: ["all-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["lotteries"] });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao confirmar pagamento");
+    } finally {
+      setConfirmingPurchase(null);
+    }
+  };
 
   useEffect(() => {
     if (settings) {
@@ -552,6 +572,7 @@ const Admin = () => {
                       <th className="p-4">Método</th>
                       <th className="p-4">Status</th>
                       <th className="p-4">Data</th>
+                      <th className="p-4">Ação</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -572,6 +593,23 @@ const Admin = () => {
                           </span>
                         </td>
                         <td className="p-4 text-muted-foreground">{new Date(p.created_at).toLocaleDateString("pt-BR")}</td>
+                        <td className="p-4">
+                          {p.status !== "pago" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-xl text-xs"
+                              disabled={confirmingPurchase === p.id}
+                              onClick={() => handleConfirmPayment(p.id)}
+                            >
+                              {confirmingPurchase === p.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                "✅ Confirmar"
+                              )}
+                            </Button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
