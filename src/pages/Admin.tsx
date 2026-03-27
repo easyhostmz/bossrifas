@@ -566,6 +566,7 @@ const Admin = () => {
                   <thead>
                     <tr className="border-b border-border text-left text-xs text-muted-foreground">
                       <th className="p-4">Usuário</th>
+                      <th className="p-4">Telefone</th>
                       <th className="p-4">Sorteio</th>
                       <th className="p-4">Qtd</th>
                       <th className="p-4">Valor</th>
@@ -579,6 +580,7 @@ const Admin = () => {
                     {filteredPurchases.map((p) => (
                       <tr key={p.id} className="border-b border-border/50">
                         <td className="p-4 font-medium">{getUserName(p.user_id)}</td>
+                        <td className="p-4 text-muted-foreground">{p.telefone}</td>
                         <td className="p-4">{getLotteryName(p.lottery_id)}</td>
                         <td className="p-4">{p.quantidade}</td>
                         <td className="p-4">{Number(p.valor_total).toLocaleString("pt-BR")} MT</td>
