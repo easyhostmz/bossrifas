@@ -250,7 +250,52 @@ const RaffleDetail = () => {
                 </CardContent>
               </Card>
             ) : (
-            <Card className="sticky top-20">
+            <div className="space-y-4 sticky top-20">
+              {/* Combo packages */}
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="p-5 space-y-3">
+                  <h3 className="text-lg font-bold flex items-center gap-2">
+                    💰 Compre por combos
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Quanto mais números, maiores as chances!</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { qty: 3, label: "3 Números", price: 3 * Number(lottery.preco_numero) },
+                      { qty: 5, label: "5 Números", price: 5 * Number(lottery.preco_numero) },
+                      { qty: 10, label: "10 Números", price: 10 * Number(lottery.preco_numero) },
+                      { qty: 20, label: "20 Números", price: 20 * Number(lottery.preco_numero) },
+                    ].map(({ qty, label, price }) => (
+                      <button
+                        key={qty}
+                        onClick={async () => {
+                          // Fetch available numbers and auto-select random ones
+                          const { data: availableNums } = await supabase
+                            .from("lottery_numbers")
+                            .select("numero")
+                            .eq("lottery_id", lottery.id)
+                            .eq("status", "disponivel")
+                            .limit(qty);
+                          if (!availableNums || availableNums.length < qty) {
+                            toast.error(`Não há ${qty} números disponíveis`);
+                            return;
+                          }
+                          const nums = availableNums.map(n => n.numero);
+                          setSelectedNumbers(nums);
+                          toast.success(`${qty} números aleatórios selecionados!`);
+                        }}
+                        className="flex flex-col items-center rounded-xl border-2 border-border hover:border-primary p-3 transition-all hover:bg-primary/5"
+                      >
+                        <span className="text-sm font-bold">+{qty} Números</span>
+                        <span className="text-xs text-muted-foreground">
+                          Por apenas: <span className="font-bold text-primary">{price.toLocaleString("pt-BR")} MT</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
               <CardContent className="p-5 space-y-5">
                 <h3 className="text-lg font-bold">Comprar Números</h3>
 
@@ -258,7 +303,7 @@ const RaffleDetail = () => {
                   <Label>Números selecionados</Label>
                   <div className="rounded-xl bg-muted/50 p-3 min-h-[40px]">
                     {selectedNumbers.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">Selecione números no grid abaixo</p>
+                      <p className="text-xs text-muted-foreground">Selecione números no grid ou use os combos acima</p>
                     ) : (
                       <div className="flex flex-wrap gap-1.5">
                         {selectedNumbers.sort().map(num => (
@@ -356,8 +401,13 @@ const RaffleDetail = () => {
                 >
                   {buying ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processando...</> : `CONFIRMAR COMPRA (${selectedNumbers.length} nº)`}
                 </Button>
+
+                <p className="text-[10px] text-center text-muted-foreground">
+                  ⚡ Quanto mais números comprar, maiores as chances de ganhar!
+                </p>
               </CardContent>
             </Card>
+            </div>
             )}
           </div>
         </div>
