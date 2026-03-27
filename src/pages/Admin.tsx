@@ -572,6 +572,7 @@ const Admin = () => {
                       <th className="p-4">Método</th>
                       <th className="p-4">Status</th>
                       <th className="p-4">Data</th>
+                      <th className="p-4">Ação</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -592,6 +593,23 @@ const Admin = () => {
                           </span>
                         </td>
                         <td className="p-4 text-muted-foreground">{new Date(p.created_at).toLocaleDateString("pt-BR")}</td>
+                        <td className="p-4">
+                          {p.status !== "pago" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-xl text-xs"
+                              disabled={confirmingPurchase === p.id}
+                              onClick={() => handleConfirmPayment(p.id)}
+                            >
+                              {confirmingPurchase === p.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                "✅ Confirmar"
+                              )}
+                            </Button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
