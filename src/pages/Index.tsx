@@ -1,71 +1,115 @@
-import { Loader2, Trophy, Star, Zap } from "lucide-react";
 import Header from "@/components/Header";
 import RaffleCard from "@/components/RaffleCard";
 import { useLotteries } from "@/hooks/useSupabaseData";
-import { Lottery } from "@/types";
+import { Trophy, TrendingUp, Shield, Zap, Loader2, Crown } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 const Index = () => {
   const { data: lotteries, isLoading } = useLotteries();
 
-  const mapped: Lottery[] = (lotteries || []).map((l) => ({
-    id: l.id,
-    name: l.nome,
-    description: l.descricao || "",
-    image_url: l.imagem_url || "",
-    price_per_number: l.preco_numero,
-    total_numbers: l.total_numeros,
-    sold_numbers: l.numeros_vendidos,
-    start_date: l.data_inicio,
-    end_date: l.data_fim,
-    status: l.status,
-    prizes: Array.isArray(l.premios) ? l.premios : [],
-  }));
-
-  const active = mapped.filter((l) => l.status === "active" || l.status === "ativa");
-
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0">
+    <div className="min-h-screen pb-20 md:pb-0">
       <Header />
 
       {/* Hero */}
-      <section className="relative overflow-hidden py-16 md:py-24">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
-        <div className="relative mx-auto max-w-7xl px-4 text-center">
-          <div className="mx-auto flex items-center justify-center gap-2 mb-4">
-            <Trophy className="h-6 w-6 text-primary" />
-            <span className="text-sm font-semibold text-primary uppercase tracking-wider">Boss dos Prêmios</span>
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
+        <div className="mx-auto max-w-[92%] md:max-w-7xl relative py-10 md:py-20 text-center">
+          <div className="mx-auto mb-6 flex justify-center">
+            <img src={logo} alt="Boss dos Prêmios" className="h-16 md:h-20" />
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight md:text-6xl mb-4">
-            Concorra a <span className="text-gradient">Prêmios Incríveis</span>
+          <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-medium text-primary mb-4">
+            <Zap className="h-3 w-3" />
+            Sorteios 100% transparentes
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight md:text-5xl mb-3">
+            Concorra a prêmios
+            <br />
+            <span className="text-gradient">incríveis</span>
           </h1>
-          <p className="mx-auto max-w-2xl text-muted-foreground text-lg">
-            Escolha seus números da sorte e concorra a prêmios extraordinários. Transparência total e sorteios verificados.
+          <p className="mx-auto max-w-md text-muted-foreground text-base mb-6">
+            Escolha seus números da sorte e concorra a smartphones, carros e muito mais. Pagamento rápido via M-Pesa ou eMola.
           </p>
-          <div className="mt-8 flex items-center justify-center gap-6 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1.5"><Star className="h-4 w-4 text-primary" /> Sorteios verificados</div>
-            <div className="flex items-center gap-1.5"><Zap className="h-4 w-4 text-primary" /> Pagamento instantâneo</div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="border-y border-border/50">
+        <div className="mx-auto max-w-[92%] md:max-w-7xl py-8">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {[
+              { icon: Trophy, title: "Prêmios Reais", desc: "Sorteios verificados e transparentes" },
+              { icon: TrendingUp, title: "Odds Justas", desc: "Chances reais de ganhar" },
+              { icon: Shield, title: "100% Seguro", desc: "Pagamento protegido" },
+            ].map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="flex items-center gap-4 rounded-2xl bg-card border border-border p-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                  <Icon className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">{title}</p>
+                  <p className="text-xs text-muted-foreground">{desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Lotteries */}
-      <section className="mx-auto max-w-7xl px-4 py-8">
-        <h2 className="text-2xl font-bold mb-6">Sorteios Ativos</h2>
+      {/* Sorteios */}
+      <section className="mx-auto max-w-[92%] md:max-w-7xl py-8">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold md:text-2xl">Sorteios Ativos</h2>
+            <p className="text-sm text-muted-foreground">Escolha o seu e boa sorte!</p>
+          </div>
+        </div>
 
         {isLoading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : active.length === 0 ? (
-          <p className="text-center text-muted-foreground py-16">Nenhum sorteio ativo no momento.</p>
+        ) : !lotteries || lotteries.length === 0 ? (
+          <div className="text-center py-20 text-muted-foreground">
+            <Crown className="mx-auto h-12 w-12 text-primary/30 mb-3" />
+            <p>Nenhum sorteio disponível no momento.</p>
+          </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {active.map((lottery) => (
-              <RaffleCard key={lottery.id} lottery={lottery} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {lotteries.map((lottery) => (
+              <RaffleCard
+                key={lottery.id}
+                lottery={{
+                  id: lottery.id,
+                  name: lottery.nome,
+                  description: lottery.descricao,
+                  image_url: lottery.imagem_url,
+                  price_per_number: Number(lottery.preco_numero),
+                  total_numbers: lottery.total_numeros,
+                  sold_numbers: lottery.numeros_vendidos,
+                  start_date: lottery.data_inicio,
+                  end_date: lottery.data_fim,
+                  status: lottery.status === "ativo" ? "active" : "ended",
+                  prizes: (lottery.premios || []).map((p: any, i: number) => ({
+                    id: p.id || String(i),
+                    name: p.name || p.nome,
+                    description: p.description || p.descricao || "",
+                    image_url: p.image_url || p.imagem_url || "",
+                    position: p.position || i + 1,
+                  })),
+                }}
+              />
             ))}
           </div>
         )}
       </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border/50 py-6">
+        <div className="mx-auto max-w-[92%] md:max-w-7xl text-center text-xs text-muted-foreground">
+          <p>© 2026 Boss dos Prêmios. Todos os direitos reservados.</p>
+        </div>
+      </footer>
     </div>
   );
 };
