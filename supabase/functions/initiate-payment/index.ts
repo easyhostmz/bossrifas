@@ -169,7 +169,6 @@ Deno.serve(async (req) => {
     let availableNumbers: { id: string; numero: string }[];
 
     if (selected_numbers && Array.isArray(selected_numbers) && selected_numbers.length > 0) {
-      // User selected specific numbers - verify they are available
       const { data: nums, error: numsError } = await supabase
         .from("lottery_numbers")
         .select("id, numero")
@@ -189,7 +188,6 @@ Deno.serve(async (req) => {
       }
       availableNumbers = nums;
     } else {
-      // Fallback: random assignment
       const { data: nums, error: numbersError } = await supabase
         .from("lottery_numbers").select("id, numero")
         .eq("lottery_id", lottery_id).eq("status", "disponivel").limit(quantidade);
@@ -206,6 +204,125 @@ Deno.serve(async (req) => {
     const numerosStr = availableNumbers.map((n) => n.numero);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
+    // Get admin settings FIRST before reserving numbers
+    const { data: settings } = await supabase
+      .from("admin_settings").select("*")
+      .order("updated_at", { ascending: false }).limit(1).single();
+
+    if (!settings?.debito_api_token) {
+      // Test mode — reserve, create purchase, auto-complete
+      const { error: reserveError } = await supabase
+        .from("lottery_numbers")
+        .update({ status: "reservado", user_id: user.id, reserved_at: new Date().toISOString(), expires_at: expiresAt })
+        .in("id", numberIds).eq("status", "disponivel");
+
+      if (reserveError) {
+        return new Response(JSON.stringify({ error: "Erro ao reservar números. Tente novamente." }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: purchase, error: purchaseError } = await supabase
+        .from("purchases")
+        .insert({ user_id: user.id, lottery_id, quantidade, numeros: numerosStr, valor_total: valorTotal, telefone, metodo, status: "pendente" })
+        .select().single();
+
+      if (purchaseError) {
+        await supabase.from("lottery_numbers")
+          .update({ status: "disponivel", user_id: null, reserved_at: null, expires_at: null })
+          .in("id", numberIds);
+        return new Response(JSON.stringify({ error: "Erro ao criar compra" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: transaction } = await supabase
+        .from("transactions")
+        .insert({ purchase_id: purchase.id, user_id: user.id, metodo, status: "success", amount: valorTotal, msisdn: telefone })
+        .select().single();
+
+      await supabase.from("purchases").update({ status: "pago" }).eq("id", purchase.id);
+      for (const num of numerosStr) {
+        await supabase.from("lottery_numbers")
+          .update({ status: "vendido" })
+          .eq("lottery_id", lottery_id).eq("numero", num);
+      }
+
+      return new Response(JSON.stringify({
+        status: "success",
+        purchase_id: purchase.id,
+        transaction_id: transaction?.id,
+        numeros: numerosStr,
+        message: "Modo teste — completado automaticamente",
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── PRODUCTION: Call Débito API FIRST before reserving ──
+    const walletId = metodo === "mpesa" ? settings.wallet_mpesa : settings.wallet_emola;
+    
+    if (!walletId) {
+      return new Response(JSON.stringify({ error: `Carteira ${metodo === "mpesa" ? "M-Pesa" : "eMola"} não configurada. Contacte o administrador.` }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const endpoint = metodo === "mpesa"
+      ? `${DEBITO_BASE}/api/v1/wallets/${walletId}/c2b/mpesa`
+      : `${DEBITO_BASE}/api/v1/wallets/${walletId}/c2b/emola`;
+
+    let debitoRef: string | null = null;
+    let debitoTxId: string | null = null;
+
+    try {
+      console.log(`Calling Débito: ${endpoint}`, { msisdn: telefone, amount: valorTotal });
+      const debitoRes = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${settings.debito_api_token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          msisdn: telefone,
+          amount: valorTotal,
+          reference_description: `Boss Premios - ${lottery.nome}`.substring(0, 32),
+        }),
+      });
+
+      const debitoData = await debitoRes.json();
+      console.log("Débito response:", JSON.stringify(debitoData));
+
+      if (!debitoRes.ok) {
+        console.error("Débito API error:", debitoRes.status, debitoData);
+        const errorMsg = debitoData?.message || debitoData?.error || `Erro na API de pagamento (${debitoRes.status})`;
+        return new Response(JSON.stringify({ 
+          error: `Falha ao iniciar pagamento: ${errorMsg}. Tente novamente.` 
+        }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      debitoRef = debitoData.debito_reference || debitoData.reference || null;
+      debitoTxId = String(debitoData.transaction_id || debitoData.id || "");
+
+      if (!debitoRef) {
+        console.error("Débito returned OK but no reference:", debitoData);
+        return new Response(JSON.stringify({ 
+          error: "API de pagamento não retornou referência. Tente novamente." 
+        }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch (apiErr) {
+      console.error("Débito API call failed:", apiErr);
+      return new Response(JSON.stringify({ 
+        error: "Não foi possível conectar à API de pagamento. Verifique sua conexão e tente novamente." 
+      }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Only reserve numbers AFTER Débito API succeeds
     const { error: reserveError } = await supabase
       .from("lottery_numbers")
       .update({ status: "reservado", user_id: user.id, reserved_at: new Date().toISOString(), expires_at: expiresAt })
@@ -231,85 +348,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get admin settings
-    const { data: settings } = await supabase
-      .from("admin_settings").select("*")
-      .order("updated_at", { ascending: false }).limit(1).single();
-
-    if (!settings?.debito_api_token) {
-      // Test mode — auto-complete
-      const { data: transaction } = await supabase
-        .from("transactions")
-        .insert({ purchase_id: purchase.id, user_id: user.id, metodo, status: "success", amount: valorTotal, msisdn: telefone })
-        .select().single();
-
-      await supabase.from("purchases").update({ status: "pago" }).eq("id", purchase.id);
-      for (const num of numerosStr) {
-        await supabase.from("lottery_numbers")
-          .update({ status: "vendido" })
-          .eq("lottery_id", lottery_id).eq("numero", num);
-      }
-
-      return new Response(JSON.stringify({
-        status: "success",
-        purchase_id: purchase.id,
-        transaction_id: transaction?.id,
-        numeros: numerosStr,
-        message: "Modo teste — completado automaticamente",
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    // Call Débito API
-    const walletId = metodo === "mpesa" ? settings.wallet_mpesa : settings.wallet_emola;
-    const endpoint = metodo === "mpesa"
-      ? `${DEBITO_BASE}/api/v1/wallets/${walletId}/c2b/mpesa`
-      : `${DEBITO_BASE}/api/v1/wallets/${walletId}/c2b/emola`;
-
-    let debitoRef = null;
-    let debitoTxId = null;
-    let debitoStatus = "pending";
-
-    try {
-      console.log(`Calling Débito: ${endpoint}`, { msisdn: telefone, amount: valorTotal });
-      const debitoRes = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${settings.debito_api_token}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          msisdn: telefone,
-          amount: valorTotal,
-          reference_description: `Boss Premios - ${lottery.nome}`.substring(0, 32),
-        }),
-      });
-
-      const debitoData = await debitoRes.json();
-      console.log("Débito response:", JSON.stringify(debitoData));
-
-      if (debitoRes.ok) {
-        debitoRef = debitoData.debito_reference || debitoData.reference || null;
-        debitoTxId = String(debitoData.transaction_id || debitoData.id || "");
-        debitoStatus = "pending";
-      } else {
-        console.error("Débito API error:", debitoRes.status, debitoData);
-      }
-    } catch (apiErr) {
-      console.error("Débito API call failed:", apiErr);
-    }
-
     const { data: transaction } = await supabase
       .from("transactions")
       .insert({
         purchase_id: purchase.id, user_id: user.id, metodo,
         debito_reference: debitoRef, transaction_id: debitoTxId,
-        status: debitoStatus, amount: valorTotal, msisdn: telefone,
+        status: "pending", amount: valorTotal, msisdn: telefone,
       })
       .select().single();
 
     return new Response(JSON.stringify({
-      status: debitoStatus,
+      status: "pending",
       purchase_id: purchase.id,
       transaction_id: transaction?.id,
       debito_reference: debitoRef,
