@@ -74,6 +74,26 @@ const Admin = () => {
   // Filters
   const [purchaseStatusFilter, setPurchaseStatusFilter] = useState<string>("all");
   const [purchaseMethodFilter, setPurchaseMethodFilter] = useState<string>("all");
+  const [confirmingPurchase, setConfirmingPurchase] = useState<string | null>(null);
+
+  const handleConfirmPayment = async (purchaseId: string) => {
+    setConfirmingPurchase(purchaseId);
+    try {
+      const { data, error } = await supabase.functions.invoke("confirm-payment", {
+        body: { purchase_id: purchaseId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Pagamento confirmado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["all-purchases"] });
+      queryClient.invalidateQueries({ queryKey: ["all-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["lotteries"] });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao confirmar pagamento");
+    } finally {
+      setConfirmingPurchase(null);
+    }
+  };
 
   useEffect(() => {
     if (settings) {
