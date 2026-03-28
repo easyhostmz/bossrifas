@@ -118,42 +118,65 @@ const Admin = () => {
   const handleConfirmPayment = async (purchaseId: string) => {
     setConfirmingPurchase(purchaseId);
     try {
+      const { data: purchase, error: purchaseFetchError } = await supabase
+        .from("purchases")
+        .select("id, user_id, lottery_id, numeros")
+        .eq("id", purchaseId)
+        .single();
+
+      if (purchaseFetchError || !purchase) {
+        throw purchaseFetchError || new Error("Compra não encontrada");
+      }
+
+      const nums = Array.from(new Set((purchase.numeros as string[]) || []));
+      if (nums.length === 0) {
+        throw new Error("Esta compra não tem números associados");
+      }
+
+      const { data: currentNumbers, error: numbersFetchError } = await supabase
+        .from("lottery_numbers")
+        .select("id, numero, status, user_id")
+        .eq("lottery_id", purchase.lottery_id)
+        .in("numero", nums);
+
+      if (numbersFetchError) throw numbersFetchError;
+
+      const invalidNumbers = nums.filter((numero) => {
+        const match = currentNumbers?.find((item) => item.numero === numero);
+        if (!match) return true;
+        if (match.status === "vendido" && match.user_id && match.user_id !== purchase.user_id) return true;
+        if (match.status === "reservado" && match.user_id && match.user_id !== purchase.user_id) return true;
+        return false;
+      });
+
+      if (invalidNumbers.length > 0) {
+        throw new Error(`Não foi possível confirmar. Estes números já pertencem a outra compra: ${invalidNumbers.join(", ")}`);
+      }
+
+      const numbersToUpdate = (currentNumbers || [])
+        .filter((item) => item.status !== "vendido" || item.user_id !== purchase.user_id)
+        .map((item) => item.id);
+
+      if (numbersToUpdate.length > 0) {
+        const { error: sellError } = await supabase
+          .from("lottery_numbers")
+          .update({
+            status: "vendido",
+            user_id: purchase.user_id,
+            reserved_at: null,
+            expires_at: null,
+          } as any)
+          .in("id", numbersToUpdate);
+
+        if (sellError) throw sellError;
+      }
+
       const { error: purchaseError } = await supabase
         .from("purchases")
         .update({ status: "pago" } as any)
         .eq("id", purchaseId);
+
       if (purchaseError) throw purchaseError;
-
-      const { data: purchase } = await supabase
-        .from("purchases")
-        .select("lottery_id, numeros")
-        .eq("id", purchaseId)
-        .single();
-
-      if (purchase) {
-        const nums = purchase.numeros as string[];
-        for (const num of nums) {
-          await supabase
-            .from("lottery_numbers")
-            .update({ status: "vendido" } as any)
-            .eq("lottery_id", purchase.lottery_id)
-            .eq("numero", num);
-        }
-
-        // Update numeros_vendidos on the lottery
-        const { data: lottery } = await supabase
-          .from("lotteries")
-          .select("numeros_vendidos")
-          .eq("id", purchase.lottery_id)
-          .single();
-
-        if (lottery) {
-          await supabase
-            .from("lotteries")
-            .update({ numeros_vendidos: (lottery.numeros_vendidos || 0) + nums.length } as any)
-            .eq("id", purchase.lottery_id);
-        }
-      }
 
       toast.success("Pagamento confirmado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["all-purchases"] });
