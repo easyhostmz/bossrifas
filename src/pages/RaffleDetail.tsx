@@ -17,7 +17,6 @@ import { toast } from "sonner";
 const PAYMENT_NUMBERS = [
   { method: "mpesa", label: "M-Pesa", number: "845306426", owner: "Divía Cumar" },
   { method: "emola", label: "eMola", number: "866410226", owner: "Hassane Ibraimo" },
-  { method: "mkesh", label: "mKesh", number: "845306426", owner: "Divía Cumar" },
 ];
 
 const RaffleDetail = () => {
