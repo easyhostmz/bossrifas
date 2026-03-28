@@ -200,22 +200,6 @@ export function useIsAdmin() {
   });
 }
 
-export async function initiatePayment(
-  lotteryId: string,
-  quantidade: number,
-  telefone: string,
-  selectedNumbers?: string[]
-) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Não autenticado");
-
-  const res = await supabase.functions.invoke("initiate-payment", {
-    body: { lottery_id: lotteryId, quantidade, telefone, selected_numbers: selectedNumbers },
-  });
-
-  if (res.error) throw new Error(res.error.message || "Erro ao iniciar pagamento");
-  return res.data;
-}
 
 export async function createLottery(data: {
   nome: string;

@@ -1,12 +1,15 @@
 project_id = "vanhnvouzhocpasmzaef"
 
-[functions.initiate-payment]
-verify_jwt = false
-
-[functions.payment-callback]
+[functions.submit-purchase]
 verify_jwt = false
 
 [functions.release-expired]
+verify_jwt = false
+
+[functions.perform-draw]
+verify_jwt = false
+
+[functions.create-lottery]
 verify_jwt = false
 
 [functions.perform-draw]

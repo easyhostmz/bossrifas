@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useCallback, useEffect } from "react";
-import { ArrowLeft, Calendar, Gift, Loader2, Smartphone, CreditCard, Upload, CheckCircle2, Phone } from "lucide-react";
+import { ArrowLeft, Calendar, Gift, Loader2, Smartphone, CreditCard, Upload, CheckCircle2 } from "lucide-react";
 import Header from "@/components/Header";
 import ProgressBar from "@/components/ProgressBar";
 import NumberGrid from "@/components/NumberGrid";
@@ -17,7 +17,6 @@ import { toast } from "sonner";
 const PAYMENT_NUMBERS = [
   { method: "mpesa", label: "M-Pesa", number: "845306426", owner: "Divía Cumar" },
   { method: "emola", label: "eMola", number: "866410226", owner: "Hassane Ibraimo" },
-  { method: "mkesh", label: "mKesh", number: "845306426", owner: "Divía Cumar" },
 ];
 
 const RaffleDetail = () => {
@@ -285,7 +284,7 @@ const RaffleDetail = () => {
                   <p className="text-sm font-bold text-warning">📢 Como participar:</p>
                   <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
                     <li>Selecione os seus números</li>
-                    <li>Faça o pagamento por M-Pesa, eMola ou mKesh</li>
+                    <li>Faça o pagamento por M-Pesa ou eMola</li>
                     <li>Envie o comprovativo na plataforma</li>
                     <li>Aguarde a confirmação do seu número</li>
                   </ol>
@@ -384,7 +383,7 @@ const RaffleDetail = () => {
                   <RadioGroup
                     value={selectedMethod}
                     onValueChange={setSelectedMethod}
-                    className="grid grid-cols-3 gap-2"
+                    className="grid grid-cols-2 gap-2"
                   >
                     <div>
                       <RadioGroupItem value="mpesa" id="pay-mpesa" className="peer sr-only" />
@@ -408,18 +407,6 @@ const RaffleDetail = () => {
                       >
                         <CreditCard className={`h-5 w-5 ${selectedMethod === "emola" ? "text-primary" : "text-muted-foreground"}`} />
                         <span className="text-xs font-semibold">eMola</span>
-                      </Label>
-                    </div>
-                    <div>
-                      <RadioGroupItem value="mkesh" id="pay-mkesh" className="peer sr-only" />
-                      <Label
-                        htmlFor="pay-mkesh"
-                        className={`flex flex-col items-center gap-1 rounded-xl border-2 p-3 cursor-pointer transition-all text-center ${
-                          selectedMethod === "mkesh" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
-                        }`}
-                      >
-                        <Phone className={`h-5 w-5 ${selectedMethod === "mkesh" ? "text-primary" : "text-muted-foreground"}`} />
-                        <span className="text-xs font-semibold">mKesh</span>
                       </Label>
                     </div>
                   </RadioGroup>
@@ -490,7 +477,7 @@ const RaffleDetail = () => {
                       <div className="flex justify-between text-muted-foreground">
                         <span>Pagamento</span>
                         <span className="font-medium text-foreground">
-                          {selectedMethod === "mpesa" ? "M-Pesa" : selectedMethod === "emola" ? "eMola" : "mKesh"}
+                          {selectedMethod === "mpesa" ? "M-Pesa" : "eMola"}
                         </span>
                       </div>
                     )}
