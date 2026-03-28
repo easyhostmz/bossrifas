@@ -70,7 +70,7 @@ const Index = () => {
         <div className="rounded-2xl border border-warning/30 bg-warning/5 p-5 md:p-6">
           <p className="text-sm font-bold text-warning mb-3">📢 Como participar:</p>
           <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside mb-4">
-            <li>Faça o pagamento por <strong>M-Pesa</strong>, <strong>eMola</strong> ou <strong>mKesh</strong></li>
+            <li>Faça o pagamento por <strong>M-Pesa</strong> ou <strong>eMola</strong></li>
             <li>Envie o comprovativo na plataforma</li>
             <li>Aguarde a confirmação do seu número</li>
           </ol>
