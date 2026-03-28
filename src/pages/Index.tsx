@@ -75,7 +75,7 @@ const Index = () => {
             <li>Aguarde a confirmação do seu número</li>
           </ol>
           <p className="text-xs text-muted-foreground">A confirmação é feita rapidamente pela nossa equipa.</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
             <div className="rounded-xl bg-background/50 p-3 text-center border border-border">
               <p className="text-xs text-muted-foreground">M-Pesa</p>
               <p className="font-bold font-mono">845306426</p>
