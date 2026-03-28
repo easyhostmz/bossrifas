@@ -75,6 +75,45 @@ const Admin = () => {
   const [purchaseStatusFilter, setPurchaseStatusFilter] = useState<string>("all");
   const [purchaseMethodFilter, setPurchaseMethodFilter] = useState<string>("all");
   const [confirmingPurchase, setConfirmingPurchase] = useState<string | null>(null);
+  const [rejectingPurchase, setRejectingPurchase] = useState<string | null>(null);
+
+  const handleRejectPayment = async (purchaseId: string) => {
+    setRejectingPurchase(purchaseId);
+    try {
+      // Update purchase status to rejected
+      const { error: purchaseError } = await supabase
+        .from("purchases")
+        .update({ status: "rejeitado" } as any)
+        .eq("id", purchaseId);
+      if (purchaseError) throw purchaseError;
+
+      // Get purchase to release numbers
+      const { data: purchase } = await supabase
+        .from("purchases")
+        .select("lottery_id, numeros")
+        .eq("id", purchaseId)
+        .single();
+
+      if (purchase) {
+        const nums = purchase.numeros as string[];
+        for (const num of nums) {
+          await supabase
+            .from("lottery_numbers")
+            .update({ status: "disponivel", user_id: null, reserved_at: null, expires_at: null } as any)
+            .eq("lottery_id", purchase.lottery_id)
+            .eq("numero", num);
+        }
+      }
+
+      toast.success("Compra rejeitada e números liberados");
+      queryClient.invalidateQueries({ queryKey: ["all-purchases"] });
+      queryClient.invalidateQueries({ queryKey: ["lotteries"] });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao rejeitar");
+    } finally {
+      setRejectingPurchase(null);
+    }
+  };
 
   const handleConfirmPayment = async (purchaseId: string) => {
     setConfirmingPurchase(purchaseId);
