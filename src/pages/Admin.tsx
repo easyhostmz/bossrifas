@@ -593,7 +593,7 @@ const Admin = () => {
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="mpesa">M-Pesa</SelectItem>
                     <SelectItem value="emola">eMola</SelectItem>
-                    <SelectItem value="mkesh">mKesh</SelectItem>
+                    
                   </SelectContent>
                 </Select>
               </div>
