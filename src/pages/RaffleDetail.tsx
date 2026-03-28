@@ -383,7 +383,7 @@ const RaffleDetail = () => {
                   <RadioGroup
                     value={selectedMethod}
                     onValueChange={setSelectedMethod}
-                    className="grid grid-cols-3 gap-2"
+                    className="grid grid-cols-2 gap-2"
                   >
                     <div>
                       <RadioGroupItem value="mpesa" id="pay-mpesa" className="peer sr-only" />
