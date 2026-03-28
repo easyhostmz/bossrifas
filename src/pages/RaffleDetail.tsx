@@ -409,18 +409,6 @@ const RaffleDetail = () => {
                         <span className="text-xs font-semibold">eMola</span>
                       </Label>
                     </div>
-                    <div>
-                      <RadioGroupItem value="mkesh" id="pay-mkesh" className="peer sr-only" />
-                      <Label
-                        htmlFor="pay-mkesh"
-                        className={`flex flex-col items-center gap-1 rounded-xl border-2 p-3 cursor-pointer transition-all text-center ${
-                          selectedMethod === "mkesh" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
-                        }`}
-                      >
-                        <Phone className={`h-5 w-5 ${selectedMethod === "mkesh" ? "text-primary" : "text-muted-foreground"}`} />
-                        <span className="text-xs font-semibold">mKesh</span>
-                      </Label>
-                    </div>
                   </RadioGroup>
                 </div>
 
