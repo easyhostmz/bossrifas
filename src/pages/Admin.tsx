@@ -139,6 +139,20 @@ const Admin = () => {
             .eq("lottery_id", purchase.lottery_id)
             .eq("numero", num);
         }
+
+        // Update numeros_vendidos on the lottery
+        const { data: lottery } = await supabase
+          .from("lotteries")
+          .select("numeros_vendidos")
+          .eq("id", purchase.lottery_id)
+          .single();
+
+        if (lottery) {
+          await supabase
+            .from("lotteries")
+            .update({ numeros_vendidos: (lottery.numeros_vendidos || 0) + nums.length } as any)
+            .eq("id", purchase.lottery_id);
+        }
       }
 
       toast.success("Pagamento confirmado com sucesso!");
