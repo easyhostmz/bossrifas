@@ -625,7 +625,7 @@ const Admin = () => {
                         <td className="p-4">{getLotteryName(p.lottery_id)}</td>
                         <td className="p-4">{p.quantidade}</td>
                         <td className="p-4">{Number(p.valor_total).toLocaleString("pt-BR")} MT</td>
-                        <td className="p-4">{p.metodo === "mpesa" ? "M-Pesa" : p.metodo === "emola" ? "eMola" : p.metodo === "mkesh" ? "mKesh" : "Cartão"}</td>
+                        <td className="p-4">{p.metodo === "mpesa" ? "M-Pesa" : p.metodo === "emola" ? "eMola" : "Outro"}</td>
                         <td className="p-4">
                           {(p as any).comprovativo_url ? (
                             <a href={(p as any).comprovativo_url} target="_blank" rel="noopener noreferrer">
