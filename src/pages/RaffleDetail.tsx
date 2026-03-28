@@ -1,9 +1,8 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useCallback, useEffect } from "react";
-import { ArrowLeft, Calendar, Gift, Loader2, Smartphone, CreditCard } from "lucide-react";
+import { ArrowLeft, Calendar, Gift, Loader2, Smartphone, CreditCard, Upload, CheckCircle2, Phone } from "lucide-react";
 import Header from "@/components/Header";
 import ProgressBar from "@/components/ProgressBar";
-import PaymentModal from "@/components/PaymentModal";
 import NumberGrid from "@/components/NumberGrid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,9 +10,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useLottery, initiatePayment } from "@/hooks/useSupabaseData";
+import { useLottery } from "@/hooks/useSupabaseData";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const PAYMENT_NUMBERS = [
+  { method: "mpesa", label: "M-Pesa", number: "845306426", owner: "Divía Cumar" },
+  { method: "emola", label: "eMola", number: "866410226", owner: "Hassane Ibraimo" },
+  { method: "mkesh", label: "mKesh", number: "845306426", owner: "Divía Cumar" },
+];
 
 const RaffleDetail = () => {
   const { id } = useParams();
@@ -22,11 +27,12 @@ const RaffleDetail = () => {
 
   const [selectedNumbers, setSelectedNumbers] = useState<string[]>([]);
   const [phone, setPhone] = useState("");
-  const [selectedMethod, setSelectedMethod] = useState<"mpesa" | "emola" | "">("");
-  const [showPayment, setShowPayment] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<"waiting" | "success" | "error">("waiting");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [selectedMethod, setSelectedMethod] = useState<string>("");
+  const [comprovativoFile, setComprovativoFile] = useState<File | null>(null);
+  const [comprovativoPreview, setComprovativoPreview] = useState<string>("");
   const [buying, setBuying] = useState(false);
-  const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -39,37 +45,89 @@ const RaffleDetail = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Auto-detect method from phone
-  const detectedMethod = (() => {
-    const prefix = phone.substring(0, 2);
-    if (prefix === "84" || prefix === "85") return "mpesa" as const;
-    if (prefix === "86" || prefix === "87") return "emola" as const;
-    return null;
-  })();
-
-  const paymentMethod = selectedMethod || detectedMethod;
   const total = lottery ? selectedNumbers.length * Number(lottery.preco_numero) : 0;
 
   const handleSelectionChange = useCallback((numbers: string[]) => {
     setSelectedNumbers(numbers);
   }, []);
 
-  // Listen for realtime transaction updates
-  useEffect(() => {
-    if (!transactionId) return;
-    const channel = supabase
-      .channel(`transaction-${transactionId}`)
-      .on("postgres_changes", {
-        event: "UPDATE", schema: "public", table: "transactions",
-        filter: `id=eq.${transactionId}`,
-      }, (payload) => {
-        const newStatus = payload.new.status;
-        if (newStatus === "success") setPaymentStatus("success");
-        else if (newStatus === "failed") setPaymentStatus("error");
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [transactionId]);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("Ficheiro muito grande. Máximo 10MB.");
+        return;
+      }
+      setComprovativoFile(file);
+      setComprovativoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (selectedNumbers.length === 0) {
+      toast.error("Selecione pelo menos um número");
+      return;
+    }
+    if (!phone || phone.length < 9) {
+      toast.error("Insira um número de telefone válido");
+      return;
+    }
+    if (!selectedMethod) {
+      toast.error("Selecione o método de pagamento");
+      return;
+    }
+    if (!comprovativoFile) {
+      toast.error("Envie o comprovativo de pagamento");
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Faça login para comprar");
+      navigate("/login");
+      return;
+    }
+
+    setBuying(true);
+
+    try {
+      // Upload comprovativo
+      const fileExt = comprovativoFile.name.split(".").pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from("comprovativos")
+        .upload(fileName, comprovativoFile);
+
+      if (uploadError) {
+        throw new Error("Erro ao enviar comprovativo. Tente novamente.");
+      }
+
+      const { data: urlData } = supabase.storage
+        .from("comprovativos")
+        .getPublicUrl(fileName);
+
+      // Submit purchase via edge function
+      const { data, error } = await supabase.functions.invoke("submit-purchase", {
+        body: {
+          lottery_id: lottery!.id,
+          selected_numbers: selectedNumbers,
+          telefone: phone,
+          whatsapp: whatsapp || phone,
+          metodo: selectedMethod,
+          comprovativo_url: urlData.publicUrl,
+        },
+      });
+
+      if (error) throw new Error(error.message || "Erro ao processar");
+      if (data?.error) throw new Error(data.error);
+
+      setSubmitted(true);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao processar compra");
+    } finally {
+      setBuying(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -101,66 +159,36 @@ const RaffleDetail = () => {
     position: p.position || i + 1,
   }));
 
-  const handleBuy = async () => {
-    if (selectedNumbers.length === 0) {
-      toast.error("Selecione pelo menos um número");
-      return;
-    }
-    if (!phone || phone.length < 9) {
-      toast.error("Insira um número de telefone válido");
-      return;
-    }
-    if (!paymentMethod) {
-      toast.error("Selecione o método de pagamento (M-Pesa ou eMola)");
-      return;
-    }
+  const selectedPayment = PAYMENT_NUMBERS.find(p => p.method === selectedMethod);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast.error("Faça login para comprar");
-      navigate("/login");
-      return;
-    }
-
-    setBuying(true);
-    setPaymentStatus("waiting");
-    setShowPayment(true);
-
-    try {
-      const result = await initiatePayment(lottery.id, selectedNumbers.length, phone, selectedNumbers);
-
-      if (result.status === "success") {
-        setPaymentStatus("success");
-      } else if (result.debito_reference) {
-        setTransactionId(result.transaction_id);
-        pollDebitoStatus(result.debito_reference);
-      } else {
-        setTransactionId(result.transaction_id);
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao processar pagamento");
-      setPaymentStatus("error");
-    } finally {
-      setBuying(false);
-    }
-  };
-
-  const pollDebitoStatus = async (ref: string) => {
-    const maxAttempts = 30;
-    for (let i = 0; i < maxAttempts; i++) {
-      await new Promise(r => setTimeout(r, 10000));
-      try {
-        const { data, error } = await supabase.functions.invoke("initiate-payment", {
-          body: { action: "status", debito_reference: ref },
-        });
-        if (error) continue;
-        if (data?.is_complete) { setPaymentStatus("success"); return; }
-        if (data?.is_failed) { setPaymentStatus("error"); return; }
-      } catch { /* continue */ }
-    }
-    toast.error("Tempo esgotado. Verifique o status no seu dashboard.");
-    setPaymentStatus("error");
-  };
+  // Success state
+  if (submitted) {
+    return (
+      <div className="min-h-screen pb-20 md:pb-0">
+        <Header />
+        <div className="mx-auto max-w-md py-20 text-center space-y-6 px-4">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/20">
+            <CheckCircle2 className="h-10 w-10 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold">Recebemos o seu comprovativo ✅</h2>
+          <p className="text-muted-foreground">
+            O seu número está reservado e será confirmado após verificação do pagamento.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            A confirmação é feita rapidamente pela nossa equipa.
+          </p>
+          <div className="flex flex-col gap-2">
+            <Button onClick={() => navigate("/dashboard")} className="w-full rounded-xl">
+              Ver Meus Números
+            </Button>
+            <Button variant="outline" onClick={() => { setSubmitted(false); setSelectedNumbers([]); setComprovativoFile(null); setComprovativoPreview(""); }} className="w-full rounded-xl">
+              Comprar Mais Números
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-20 md:pb-0">
@@ -251,6 +279,19 @@ const RaffleDetail = () => {
               </Card>
             ) : (
             <div className="space-y-4 sticky top-20">
+              {/* Payment info banner */}
+              <Card className="border-warning/30 bg-warning/5">
+                <CardContent className="p-4 space-y-2">
+                  <p className="text-sm font-bold text-warning">📢 Como participar:</p>
+                  <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                    <li>Selecione os seus números</li>
+                    <li>Faça o pagamento por M-Pesa, eMola ou mKesh</li>
+                    <li>Envie o comprovativo na plataforma</li>
+                    <li>Aguarde a confirmação do seu número</li>
+                  </ol>
+                </CardContent>
+              </Card>
+
               {/* Combo packages */}
               <Card className="border-primary/30 bg-primary/5">
                 <CardContent className="p-5 space-y-3">
@@ -268,7 +309,6 @@ const RaffleDetail = () => {
                       <button
                         key={qty}
                         onClick={async () => {
-                          // Fetch available numbers and auto-select random ones
                           const { data: availableNums } = await supabase
                             .from("lottery_numbers")
                             .select("numero")
@@ -297,7 +337,7 @@ const RaffleDetail = () => {
 
               <Card>
               <CardContent className="p-5 space-y-5">
-                <h3 className="text-lg font-bold">Comprar Números</h3>
+                <h3 className="text-lg font-bold">Enviar Comprovativo</h3>
 
                 <div className="space-y-2">
                   <Label>Números selecionados</Label>
@@ -325,48 +365,114 @@ const RaffleDetail = () => {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                   />
-                  {detectedMethod && !selectedMethod && (
-                    <p className="text-xs font-medium text-primary">
-                      Detectado: {detectedMethod === "mpesa" ? "M-Pesa" : "eMola"}
-                    </p>
-                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>WhatsApp</Label>
+                  <Input
+                    type="tel"
+                    placeholder="841234567 (opcional, se diferente)"
+                    maxLength={9}
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ""))}
+                  />
                 </div>
 
                 {/* Payment method selector */}
                 <div className="space-y-2">
                   <Label>Método de Pagamento</Label>
                   <RadioGroup
-                    value={paymentMethod || ""}
-                    onValueChange={(v) => setSelectedMethod(v as "mpesa" | "emola")}
-                    className="grid grid-cols-2 gap-3"
+                    value={selectedMethod}
+                    onValueChange={setSelectedMethod}
+                    className="grid grid-cols-3 gap-2"
                   >
                     <div>
                       <RadioGroupItem value="mpesa" id="pay-mpesa" className="peer sr-only" />
                       <Label
                         htmlFor="pay-mpesa"
-                        className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 cursor-pointer transition-all ${
-                          paymentMethod === "mpesa" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
+                        className={`flex flex-col items-center gap-1 rounded-xl border-2 p-3 cursor-pointer transition-all text-center ${
+                          selectedMethod === "mpesa" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
                         }`}
                       >
-                        <Smartphone className={`h-6 w-6 ${paymentMethod === "mpesa" ? "text-primary" : "text-muted-foreground"}`} />
-                        <span className="text-sm font-semibold">M-Pesa</span>
-                        <span className="text-[10px] text-muted-foreground">Nº 84 / 85</span>
+                        <Smartphone className={`h-5 w-5 ${selectedMethod === "mpesa" ? "text-primary" : "text-muted-foreground"}`} />
+                        <span className="text-xs font-semibold">M-Pesa</span>
                       </Label>
                     </div>
                     <div>
                       <RadioGroupItem value="emola" id="pay-emola" className="peer sr-only" />
                       <Label
                         htmlFor="pay-emola"
-                        className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 cursor-pointer transition-all ${
-                          paymentMethod === "emola" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
+                        className={`flex flex-col items-center gap-1 rounded-xl border-2 p-3 cursor-pointer transition-all text-center ${
+                          selectedMethod === "emola" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
                         }`}
                       >
-                        <CreditCard className={`h-6 w-6 ${paymentMethod === "emola" ? "text-primary" : "text-muted-foreground"}`} />
-                        <span className="text-sm font-semibold">eMola</span>
-                        <span className="text-[10px] text-muted-foreground">Nº 86 / 87</span>
+                        <CreditCard className={`h-5 w-5 ${selectedMethod === "emola" ? "text-primary" : "text-muted-foreground"}`} />
+                        <span className="text-xs font-semibold">eMola</span>
+                      </Label>
+                    </div>
+                    <div>
+                      <RadioGroupItem value="mkesh" id="pay-mkesh" className="peer sr-only" />
+                      <Label
+                        htmlFor="pay-mkesh"
+                        className={`flex flex-col items-center gap-1 rounded-xl border-2 p-3 cursor-pointer transition-all text-center ${
+                          selectedMethod === "mkesh" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
+                        }`}
+                      >
+                        <Phone className={`h-5 w-5 ${selectedMethod === "mkesh" ? "text-primary" : "text-muted-foreground"}`} />
+                        <span className="text-xs font-semibold">mKesh</span>
                       </Label>
                     </div>
                   </RadioGroup>
+                </div>
+
+                {/* Show payment number for selected method */}
+                {selectedPayment && (
+                  <Card className="bg-primary/5 border-primary/20">
+                    <CardContent className="p-4 space-y-2">
+                      <p className="text-sm font-bold text-primary">📱 Envie o pagamento para:</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Número:</span>
+                        <span className="font-bold font-mono text-lg">{selectedPayment.number}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Nome:</span>
+                        <span className="font-semibold text-sm">{selectedPayment.owner}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Valor:</span>
+                        <span className="font-bold text-primary">{total.toLocaleString("pt-BR")} MT</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Comprovativo upload */}
+                <div className="space-y-2">
+                  <Label>Comprovativo de Pagamento</Label>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                    />
+                    <div className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 transition-colors ${
+                      comprovativoFile ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
+                    }`}>
+                      {comprovativoPreview ? (
+                        <img src={comprovativoPreview} alt="Comprovativo" className="max-h-32 rounded-lg object-contain" />
+                      ) : (
+                        <>
+                          <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                          <p className="text-sm text-muted-foreground">Toque para enviar comprovativo</p>
+                          <p className="text-xs text-muted-foreground">PNG, JPG até 10MB</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {comprovativoFile && (
+                    <p className="text-xs text-primary font-medium">✅ {comprovativoFile.name}</p>
+                  )}
                 </div>
 
                 {/* Summary */}
@@ -380,10 +486,12 @@ const RaffleDetail = () => {
                       <span>Quantidade</span>
                       <span>×{selectedNumbers.length}</span>
                     </div>
-                    {paymentMethod && (
+                    {selectedMethod && (
                       <div className="flex justify-between text-muted-foreground">
                         <span>Pagamento</span>
-                        <span className="font-medium text-foreground">{paymentMethod === "mpesa" ? "M-Pesa" : "eMola"}</span>
+                        <span className="font-medium text-foreground">
+                          {selectedMethod === "mpesa" ? "M-Pesa" : selectedMethod === "emola" ? "eMola" : "mKesh"}
+                        </span>
                       </div>
                     )}
                     <div className="border-t border-border pt-2 flex justify-between font-bold text-lg">
@@ -394,16 +502,16 @@ const RaffleDetail = () => {
                 </Card>
 
                 <Button
-                  onClick={handleBuy}
-                  disabled={buying || !paymentMethod || selectedNumbers.length === 0}
+                  onClick={handleSubmit}
+                  disabled={buying || !selectedMethod || selectedNumbers.length === 0 || !comprovativoFile}
                   className="w-full rounded-xl text-base py-6 font-bold"
                   size="lg"
                 >
-                  {buying ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processando...</> : `CONFIRMAR COMPRA (${selectedNumbers.length} nº)`}
+                  {buying ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando...</> : "ENVIAR COMPROVATIVO"}
                 </Button>
 
                 <p className="text-[10px] text-center text-muted-foreground">
-                  ⚡ Quanto mais números comprar, maiores as chances de ganhar!
+                  A confirmação é feita rapidamente pela nossa equipa.
                 </p>
               </CardContent>
             </Card>
@@ -412,18 +520,6 @@ const RaffleDetail = () => {
           </div>
         </div>
       </div>
-
-      <PaymentModal
-        open={showPayment}
-        onClose={() => {
-          setShowPayment(false);
-          if (paymentStatus === "success") navigate("/dashboard");
-        }}
-        total={total}
-        phone={phone}
-        method={paymentMethod || "mpesa"}
-        status={paymentStatus}
-      />
     </div>
   );
 };
