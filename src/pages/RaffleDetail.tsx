@@ -477,7 +477,7 @@ const RaffleDetail = () => {
                       <div className="flex justify-between text-muted-foreground">
                         <span>Pagamento</span>
                         <span className="font-medium text-foreground">
-                          {selectedMethod === "mpesa" ? "M-Pesa" : selectedMethod === "emola" ? "eMola" : "mKesh"}
+                          {selectedMethod === "mpesa" ? "M-Pesa" : "eMola"}
                         </span>
                       </div>
                     )}
