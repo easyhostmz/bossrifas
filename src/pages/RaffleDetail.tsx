@@ -284,7 +284,7 @@ const RaffleDetail = () => {
                   <p className="text-sm font-bold text-warning">📢 Como participar:</p>
                   <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
                     <li>Selecione os seus números</li>
-                    <li>Faça o pagamento por M-Pesa, eMola ou mKesh</li>
+                    <li>Faça o pagamento por M-Pesa ou eMola</li>
                     <li>Envie o comprovativo na plataforma</li>
                     <li>Aguarde a confirmação do seu número</li>
                   </ol>
