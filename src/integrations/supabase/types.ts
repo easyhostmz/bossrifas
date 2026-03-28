@@ -191,6 +191,7 @@ export type Database = {
       }
       purchases: {
         Row: {
+          comprovativo_url: string | null
           created_at: string
           id: string
           lottery_id: string
@@ -201,8 +202,10 @@ export type Database = {
           telefone: string
           user_id: string
           valor_total: number
+          whatsapp: string | null
         }
         Insert: {
+          comprovativo_url?: string | null
           created_at?: string
           id?: string
           lottery_id: string
@@ -213,8 +216,10 @@ export type Database = {
           telefone: string
           user_id: string
           valor_total: number
+          whatsapp?: string | null
         }
         Update: {
+          comprovativo_url?: string | null
           created_at?: string
           id?: string
           lottery_id?: string
@@ -225,6 +230,7 @@ export type Database = {
           telefone?: string
           user_id?: string
           valor_total?: number
+          whatsapp?: string | null
         }
         Relationships: [
           {

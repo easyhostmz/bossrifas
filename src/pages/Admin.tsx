@@ -75,6 +75,45 @@ const Admin = () => {
   const [purchaseStatusFilter, setPurchaseStatusFilter] = useState<string>("all");
   const [purchaseMethodFilter, setPurchaseMethodFilter] = useState<string>("all");
   const [confirmingPurchase, setConfirmingPurchase] = useState<string | null>(null);
+  const [rejectingPurchase, setRejectingPurchase] = useState<string | null>(null);
+
+  const handleRejectPayment = async (purchaseId: string) => {
+    setRejectingPurchase(purchaseId);
+    try {
+      // Update purchase status to rejected
+      const { error: purchaseError } = await supabase
+        .from("purchases")
+        .update({ status: "rejeitado" } as any)
+        .eq("id", purchaseId);
+      if (purchaseError) throw purchaseError;
+
+      // Get purchase to release numbers
+      const { data: purchase } = await supabase
+        .from("purchases")
+        .select("lottery_id, numeros")
+        .eq("id", purchaseId)
+        .single();
+
+      if (purchase) {
+        const nums = purchase.numeros as string[];
+        for (const num of nums) {
+          await supabase
+            .from("lottery_numbers")
+            .update({ status: "disponivel", user_id: null, reserved_at: null, expires_at: null } as any)
+            .eq("lottery_id", purchase.lottery_id)
+            .eq("numero", num);
+        }
+      }
+
+      toast.success("Compra rejeitada e números liberados");
+      queryClient.invalidateQueries({ queryKey: ["all-purchases"] });
+      queryClient.invalidateQueries({ queryKey: ["lotteries"] });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao rejeitar");
+    } finally {
+      setRejectingPurchase(null);
+    }
+  };
 
   const handleConfirmPayment = async (purchaseId: string) => {
     setConfirmingPurchase(purchaseId);
@@ -542,6 +581,7 @@ const Admin = () => {
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="pago">Pago</SelectItem>
                     <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="rejeitado">Rejeitado</SelectItem>
                     <SelectItem value="falhou">Falhou</SelectItem>
                   </SelectContent>
                 </Select>
@@ -553,7 +593,7 @@ const Admin = () => {
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="mpesa">M-Pesa</SelectItem>
                     <SelectItem value="emola">eMola</SelectItem>
-                    <SelectItem value="card">Cartão</SelectItem>
+                    <SelectItem value="mkesh">mKesh</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -571,6 +611,7 @@ const Admin = () => {
                       <th className="p-4">Qtd</th>
                       <th className="p-4">Valor</th>
                       <th className="p-4">Método</th>
+                      <th className="p-4">Comprovativo</th>
                       <th className="p-4">Status</th>
                       <th className="p-4">Data</th>
                       <th className="p-4">Ação</th>
@@ -584,32 +625,57 @@ const Admin = () => {
                         <td className="p-4">{getLotteryName(p.lottery_id)}</td>
                         <td className="p-4">{p.quantidade}</td>
                         <td className="p-4">{Number(p.valor_total).toLocaleString("pt-BR")} MT</td>
-                        <td className="p-4">{p.metodo === "mpesa" ? "M-Pesa" : p.metodo === "emola" ? "eMola" : "Cartão"}</td>
+                        <td className="p-4">{p.metodo === "mpesa" ? "M-Pesa" : p.metodo === "emola" ? "eMola" : p.metodo === "mkesh" ? "mKesh" : "Cartão"}</td>
+                        <td className="p-4">
+                          {(p as any).comprovativo_url ? (
+                            <a href={(p as any).comprovativo_url} target="_blank" rel="noopener noreferrer">
+                              <img src={(p as any).comprovativo_url} alt="Comprovativo" className="h-10 w-10 rounded-lg object-cover border border-border cursor-pointer hover:opacity-80 transition-opacity" />
+                            </a>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
                         <td className="p-4">
                           <span className={`text-xs rounded-full px-2 py-0.5 font-medium ${
                             p.status === "pago" ? "bg-primary/20 text-primary" :
                             p.status === "pendente" ? "bg-warning/20 text-warning" :
+                            p.status === "rejeitado" ? "bg-destructive/20 text-destructive" :
                             "bg-destructive/20 text-destructive"
                           }`}>
-                            {p.status === "pago" ? "Pago" : p.status === "pendente" ? "Pendente" : "Falhou"}
+                            {p.status === "pago" ? "Confirmado" : p.status === "pendente" ? "Pendente" : p.status === "rejeitado" ? "Rejeitado" : "Falhou"}
                           </span>
                         </td>
                         <td className="p-4 text-muted-foreground">{new Date(p.created_at).toLocaleDateString("pt-BR")}</td>
                         <td className="p-4">
-                          {p.status !== "pago" && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="rounded-xl text-xs"
-                              disabled={confirmingPurchase === p.id}
-                              onClick={() => handleConfirmPayment(p.id)}
-                            >
-                              {confirmingPurchase === p.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                "✅ Confirmar"
-                              )}
-                            </Button>
+                          {p.status !== "pago" && p.status !== "rejeitado" && (
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="rounded-xl text-xs"
+                                disabled={confirmingPurchase === p.id}
+                                onClick={() => handleConfirmPayment(p.id)}
+                              >
+                                {confirmingPurchase === p.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  "✅"
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="rounded-xl text-xs text-destructive hover:text-destructive"
+                                disabled={rejectingPurchase === p.id}
+                                onClick={() => handleRejectPayment(p.id)}
+                              >
+                                {rejectingPurchase === p.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  "❌"
+                                )}
+                              </Button>
+                            </div>
                           )}
                         </td>
                       </tr>

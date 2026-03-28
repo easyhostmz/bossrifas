@@ -24,8 +24,10 @@ export interface PurchaseRow {
   numeros: string[];
   valor_total: number;
   telefone: string;
+  whatsapp: string | null;
   metodo: string;
   status: string;
+  comprovativo_url: string | null;
   created_at: string;
 }
 

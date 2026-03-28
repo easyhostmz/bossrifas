@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.create-lottery]
 verify_jwt = false
+
+[functions.submit-purchase]
+verify_jwt = false
