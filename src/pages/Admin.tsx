@@ -373,7 +373,7 @@ const Admin = () => {
     { key: "settings", label: "Configurações", icon: Settings },
   ];
 
-  const totalRevenue = (transactions || []).filter(t => t.status === "success").reduce((s, t) => s + Number(t.amount), 0);
+  const totalRevenue = (purchases || []).filter(p => p.status === "pago").reduce((s, p) => s + Number(p.valor_total), 0);
   const totalSold = (lotteries || []).reduce((s, l) => s + l.numeros_vendidos, 0);
   const totalUsers = (profiles || []).length;
 
