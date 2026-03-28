@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useCallback, useEffect } from "react";
-import { ArrowLeft, Calendar, Gift, Loader2, Smartphone, CreditCard, Upload, CheckCircle2, Phone } from "lucide-react";
+import { ArrowLeft, Calendar, Gift, Loader2, Smartphone, CreditCard, Upload, CheckCircle2 } from "lucide-react";
 import Header from "@/components/Header";
 import ProgressBar from "@/components/ProgressBar";
 import NumberGrid from "@/components/NumberGrid";
