@@ -101,7 +101,7 @@ const Index = () => {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
               { icon: CheckCircle, title: "100% Transparente", desc: "Sorteios verificados publicamente" },
-              { icon: Shield, title: "Pagamento Seguro", desc: "Via M-Pesa e eMola" },
+              { icon: Shield, title: "Pagamento Seguro", desc: "Via M-Pesa, eMola e mKesh" },
               { icon: Phone, title: "Suporte Direto", desc: "Apoio ao cliente sempre disponível" },
               { icon: Gift, title: "Prêmios Reais", desc: "Entregues aos vencedores" },
             ].map(({ icon: Icon, title, desc }) => (
