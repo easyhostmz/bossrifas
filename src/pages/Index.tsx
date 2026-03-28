@@ -86,11 +86,6 @@ const Index = () => {
               <p className="font-bold font-mono">866410226</p>
               <p className="text-xs text-muted-foreground">Hassane Ibraimo</p>
             </div>
-            <div className="rounded-xl bg-background/50 p-3 text-center border border-border">
-              <p className="text-xs text-muted-foreground">mKesh</p>
-              <p className="font-bold font-mono">845306426</p>
-              <p className="text-xs text-muted-foreground">Divía Cumar</p>
-            </div>
           </div>
         </div>
       </section>
