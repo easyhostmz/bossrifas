@@ -118,14 +118,31 @@ const Admin = () => {
   const handleConfirmPayment = async (purchaseId: string) => {
     setConfirmingPurchase(purchaseId);
     try {
-      const { data, error } = await supabase.functions.invoke("confirm-payment", {
-        body: { purchase_id: purchaseId },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      const { error: purchaseError } = await supabase
+        .from("purchases")
+        .update({ status: "pago" } as any)
+        .eq("id", purchaseId);
+      if (purchaseError) throw purchaseError;
+
+      const { data: purchase } = await supabase
+        .from("purchases")
+        .select("lottery_id, numeros")
+        .eq("id", purchaseId)
+        .single();
+
+      if (purchase) {
+        const nums = purchase.numeros as string[];
+        for (const num of nums) {
+          await supabase
+            .from("lottery_numbers")
+            .update({ status: "vendido" } as any)
+            .eq("lottery_id", purchase.lottery_id)
+            .eq("numero", num);
+        }
+      }
+
       toast.success("Pagamento confirmado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["all-purchases"] });
-      queryClient.invalidateQueries({ queryKey: ["all-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["lotteries"] });
     } catch (err: any) {
       toast.error(err.message || "Erro ao confirmar pagamento");
