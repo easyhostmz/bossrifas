@@ -93,6 +93,7 @@ const Index = () => {
             </div>
           </div>
         </div>
+      </section>
 
       {/* Trust badges */}
       <section className="border-y border-border/50">
