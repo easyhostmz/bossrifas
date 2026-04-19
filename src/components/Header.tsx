@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Ticket, User, LogIn, Crown } from "lucide-react";
+import { Home, Ticket, User, LogIn, Crown, Trophy } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.png";
@@ -33,12 +33,23 @@ const Header = () => {
             <Link to="/" className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${path === "/" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
               Início
             </Link>
+            <Link to="/ranking" className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${path === "/ranking" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+              Ranking
+            </Link>
             {isLoggedIn ? (
-              <Link to="/dashboard" className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${path === "/dashboard" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
-                Minha Conta
-              </Link>
+              <>
+                <Link to="/painel-afiliado" className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${path.startsWith("/painel-afiliado") || path === "/afiliados" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                  Afiliado
+                </Link>
+                <Link to="/dashboard" className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${path === "/dashboard" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                  Minha Conta
+                </Link>
+              </>
             ) : (
               <>
+                <Link to="/afiliados" className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${path === "/afiliados" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                  Afiliado
+                </Link>
                 <Link to="/login" className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${path === "/login" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
                   Entrar
                 </Link>
@@ -55,15 +66,16 @@ const Header = () => {
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-xl md:hidden">
         <div className="mx-auto flex h-16 max-w-[92%] items-center justify-around">
           <BottomNavItem to="/" icon={Home} label="Início" active={path === "/"} />
+          <BottomNavItem to="/ranking" icon={Trophy} label="Ranking" active={path === "/ranking"} />
           {isLoggedIn ? (
             <>
-              <BottomNavItem to="/dashboard" icon={Ticket} label="Meus Números" active={path === "/dashboard"} />
-              <BottomNavItem to="/dashboard" icon={User} label="Conta" active={false} />
+              <BottomNavItem to="/painel-afiliado" icon={Crown} label="Afiliado" active={path.startsWith("/painel-afiliado") || path === "/afiliados"} />
+              <BottomNavItem to="/dashboard" icon={User} label="Conta" active={path === "/dashboard"} />
             </>
           ) : (
             <>
+              <BottomNavItem to="/afiliados" icon={Crown} label="Afiliado" active={path === "/afiliados"} />
               <BottomNavItem to="/login" icon={LogIn} label="Entrar" active={path === "/login"} />
-              <BottomNavItem to="/register" icon={Crown} label="Criar Conta" active={path === "/register"} />
             </>
           )}
         </div>

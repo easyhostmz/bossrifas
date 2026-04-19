@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const body = await req.json();
-    const { lottery_id, selected_numbers, telefone, whatsapp, metodo, comprovativo_url } = body;
+    const { lottery_id, selected_numbers, telefone, whatsapp, metodo, comprovativo_url, affiliate_code } = body;
 
     if (!lottery_id || !selected_numbers?.length || !telefone || !metodo || !comprovativo_url) {
       return new Response(JSON.stringify({ error: "Dados obrigatórios em falta" }), {
@@ -104,6 +104,20 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Validate affiliate_code (if provided): must exist + active + not own purchase
+    let validatedAffiliateCode: string | null = null;
+    if (affiliate_code && typeof affiliate_code === "string") {
+      const code = affiliate_code.trim().toUpperCase();
+      const { data: aff } = await supabase
+        .from("affiliates")
+        .select("user_id, status")
+        .eq("codigo", code)
+        .maybeSingle();
+      if (aff && aff.status === "ativo" && aff.user_id !== user.id) {
+        validatedAffiliateCode = code;
+      }
+    }
+
     // Create purchase
     const { data: purchase, error: purchaseError } = await supabase
       .from("purchases")
@@ -118,6 +132,7 @@ Deno.serve(async (req) => {
         metodo,
         comprovativo_url,
         status: "pendente",
+        affiliate_code: validatedAffiliateCode,
       })
       .select()
       .single();

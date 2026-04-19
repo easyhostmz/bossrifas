@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useLottery } from "@/hooks/useSupabaseData";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getAffiliateCookie } from "@/hooks/useAffiliate";
 
 const PAYMENT_NUMBERS = [
   { method: "mpesa", label: "M-Pesa", number: "845306426", owner: "Divía Cumar" },
@@ -106,6 +107,7 @@ const RaffleDetail = () => {
         .getPublicUrl(fileName);
 
       // Submit purchase via edge function
+      const affiliateCode = getAffiliateCookie();
       const { data, error } = await supabase.functions.invoke("submit-purchase", {
         body: {
           lottery_id: lottery!.id,
@@ -114,6 +116,7 @@ const RaffleDetail = () => {
           whatsapp: whatsapp || phone,
           metodo: selectedMethod,
           comprovativo_url: urlData.publicUrl,
+          affiliate_code: affiliateCode,
         },
       });
 
