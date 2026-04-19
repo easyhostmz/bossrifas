@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Ticket, User, LogIn, Crown, Trophy } from "lucide-react";
+import { Home, User, LogIn, Crown, Trophy } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.png";
