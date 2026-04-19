@@ -178,7 +178,7 @@ export function useAdminSettings() {
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data as { id: string; debito_api_token: string; wallet_mpesa: string; wallet_emola: string; wallet_card: string } | null;
+      return data as { id: string; debito_api_token: string; wallet_mpesa: string; wallet_emola: string; wallet_card: string; comissao_por_numero?: number } | null;
     },
   });
 }

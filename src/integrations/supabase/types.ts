@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       admin_settings: {
         Row: {
+          comissao_por_numero: number
           debito_api_token: string | null
           id: string
           updated_at: string
@@ -24,6 +25,7 @@ export type Database = {
           wallet_mpesa: string | null
         }
         Insert: {
+          comissao_por_numero?: number
           debito_api_token?: string | null
           id?: string
           updated_at?: string
@@ -32,12 +34,109 @@ export type Database = {
           wallet_mpesa?: string | null
         }
         Update: {
+          comissao_por_numero?: number
           debito_api_token?: string | null
           id?: string
           updated_at?: string
           wallet_card?: string | null
           wallet_emola?: string | null
           wallet_mpesa?: string | null
+        }
+        Relationships: []
+      }
+      affiliate_sales: {
+        Row: {
+          affiliate_id: string
+          created_at: string
+          id: string
+          lottery_id: string
+          origem: string
+          purchase_id: string
+          quantidade: number
+          valor_comissao: number
+        }
+        Insert: {
+          affiliate_id: string
+          created_at?: string
+          id?: string
+          lottery_id: string
+          origem?: string
+          purchase_id: string
+          quantidade: number
+          valor_comissao: number
+        }
+        Update: {
+          affiliate_id?: string
+          created_at?: string
+          id?: string
+          lottery_id?: string
+          origem?: string
+          purchase_id?: string
+          quantidade?: number
+          valor_comissao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_sales_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_ranking"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_sales_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliates: {
+        Row: {
+          codigo: string
+          criado_em: string
+          email: string | null
+          id: string
+          metodo_pagamento: string | null
+          nome: string
+          saldo: number
+          status: string
+          telefone: string
+          total_comissao: number
+          total_vendas: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          codigo: string
+          criado_em?: string
+          email?: string | null
+          id?: string
+          metodo_pagamento?: string | null
+          nome: string
+          saldo?: number
+          status?: string
+          telefone: string
+          total_comissao?: number
+          total_vendas?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          codigo?: string
+          criado_em?: string
+          email?: string | null
+          id?: string
+          metodo_pagamento?: string | null
+          nome?: string
+          saldo?: number
+          status?: string
+          telefone?: string
+          total_comissao?: number
+          total_vendas?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -191,6 +290,7 @@ export type Database = {
       }
       purchases: {
         Row: {
+          affiliate_code: string | null
           comprovativo_url: string | null
           created_at: string
           id: string
@@ -205,6 +305,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          affiliate_code?: string | null
           comprovativo_url?: string | null
           created_at?: string
           id?: string
@@ -219,6 +320,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          affiliate_code?: string | null
           comprovativo_url?: string | null
           created_at?: string
           id?: string
@@ -310,11 +412,72 @@ export type Database = {
         }
         Relationships: []
       }
+      withdrawals: {
+        Row: {
+          affiliate_id: string
+          conta_destino: string | null
+          created_at: string
+          id: string
+          metodo: string
+          notas: string | null
+          status: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          affiliate_id: string
+          conta_destino?: string | null
+          created_at?: string
+          id?: string
+          metodo: string
+          notas?: string | null
+          status?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          affiliate_id?: string
+          conta_destino?: string | null
+          created_at?: string
+          id?: string
+          metodo?: string
+          notas?: string | null
+          status?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawals_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_ranking"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "withdrawals_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      affiliate_ranking: {
+        Row: {
+          codigo: string | null
+          id: string | null
+          nome: string | null
+          total_comissao: number | null
+          total_vendas: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      generate_affiliate_code: { Args: never; Returns: string }
       generate_lottery_numbers: {
         Args: { p_lottery_id: string; p_total: number }
         Returns: undefined
