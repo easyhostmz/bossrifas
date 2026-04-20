@@ -24,6 +24,7 @@ const RaffleDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: lottery, isLoading } = useLottery(id);
+  const { data: isAdmin } = useIsAdmin();
 
   const [selectedNumbers, setSelectedNumbers] = useState<string[]>([]);
   const [phone, setPhone] = useState("");
