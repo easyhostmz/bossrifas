@@ -225,7 +225,9 @@ const RaffleDetail = () => {
               </Badge>
             </div>
 
-            <ProgressBar sold={lottery.numeros_vendidos} total={lottery.total_numeros} size="lg" />
+            {isAdmin && (
+              <ProgressBar sold={lottery.numeros_vendidos} total={lottery.total_numeros} size="lg" />
+            )}
 
             {/* Prizes */}
             {prizes.length > 0 && (
