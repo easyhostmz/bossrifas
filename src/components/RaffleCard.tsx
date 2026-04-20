@@ -5,12 +5,14 @@ import ProgressBar from "./ProgressBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useIsAdmin } from "@/hooks/useSupabaseData";
 
 interface RaffleCardProps {
   lottery: Lottery;
 }
 
 const RaffleCard = ({ lottery }: RaffleCardProps) => {
+  const { data: isAdmin } = useIsAdmin();
   const daysLeft = Math.max(
     0,
     Math.ceil((new Date(lottery.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
