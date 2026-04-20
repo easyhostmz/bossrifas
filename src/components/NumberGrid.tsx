@@ -30,7 +30,7 @@ const NumberGrid = ({ lotteryId, pricePerNumber, onSelectionChange, maxSelect = 
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const fetchNumbers = useCallback(async (pageNum: number, searchQuery: string) => {
+  const fetchNumbers = useCallback(async (pageNum: number, searchQuery: string, adminMode: boolean) => {
     setLoading(true);
     try {
       const from = pageNum * PAGE_SIZE;
@@ -40,6 +40,11 @@ const NumberGrid = ({ lotteryId, pricePerNumber, onSelectionChange, maxSelect = 
         .from("lottery_numbers")
         .select("id, numero, status, user_id", { count: "exact" })
         .eq("lottery_id", lotteryId);
+
+      // Non-admin clients only see available numbers
+      if (!adminMode) {
+        query = query.eq("status", "disponivel");
+      }
 
       if (searchQuery) {
         query = query.like("numero", `%${searchQuery}%`);
@@ -59,8 +64,8 @@ const NumberGrid = ({ lotteryId, pricePerNumber, onSelectionChange, maxSelect = 
   }, [lotteryId]);
 
   useEffect(() => {
-    fetchNumbers(page, search);
-  }, [page, search, fetchNumbers]);
+    fetchNumbers(page, search, !!isAdmin);
+  }, [page, search, fetchNumbers, isAdmin]);
 
   // Realtime subscription for number status changes
   useEffect(() => {
