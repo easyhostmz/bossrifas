@@ -155,14 +155,18 @@ const NumberGrid = ({ lotteryId, pricePerNumber, onSelectionChange, maxSelect = 
           <div className="h-3 w-3 rounded bg-emerald-500/30 border border-emerald-500/50" />
           <span className="text-muted-foreground">Disponível</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded bg-amber-500/30 border border-amber-500/50" />
-          <span className="text-muted-foreground">Reservado</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded bg-red-500/30 border border-red-500/50" />
-          <span className="text-muted-foreground">Vendido</span>
-        </div>
+        {isAdmin && (
+          <>
+            <div className="flex items-center gap-1.5">
+              <div className="h-3 w-3 rounded bg-amber-500/30 border border-amber-500/50" />
+              <span className="text-muted-foreground">Reservado</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="h-3 w-3 rounded bg-red-500/30 border border-red-500/50" />
+              <span className="text-muted-foreground">Vendido</span>
+            </div>
+          </>
+        )}
         <div className="flex items-center gap-1.5">
           <div className="h-3 w-3 rounded bg-primary border border-primary" />
           <span className="text-muted-foreground">Selecionado</span>
