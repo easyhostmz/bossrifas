@@ -3,6 +3,7 @@ import { Loader2, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsAdmin } from "@/hooks/useSupabaseData";
 
 interface NumberItem {
   id: string;
@@ -21,6 +22,7 @@ interface NumberGridProps {
 const PAGE_SIZE = 100;
 
 const NumberGrid = ({ lotteryId, pricePerNumber, onSelectionChange, maxSelect = 50 }: NumberGridProps) => {
+  const { data: isAdmin } = useIsAdmin();
   const [numbers, setNumbers] = useState<NumberItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
