@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useLottery } from "@/hooks/useSupabaseData";
+import { useLottery, useIsAdmin } from "@/hooks/useSupabaseData";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getAffiliateCookie } from "@/hooks/useAffiliate";
@@ -24,6 +24,7 @@ const RaffleDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: lottery, isLoading } = useLottery(id);
+  const { data: isAdmin } = useIsAdmin();
 
   const [selectedNumbers, setSelectedNumbers] = useState<string[]>([]);
   const [phone, setPhone] = useState("");
@@ -224,7 +225,9 @@ const RaffleDetail = () => {
               </Badge>
             </div>
 
-            <ProgressBar sold={lottery.numeros_vendidos} total={lottery.total_numeros} size="lg" />
+            {isAdmin && (
+              <ProgressBar sold={lottery.numeros_vendidos} total={lottery.total_numeros} size="lg" />
+            )}
 
             {/* Prizes */}
             {prizes.length > 0 && (

@@ -5,12 +5,14 @@ import ProgressBar from "./ProgressBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useIsAdmin } from "@/hooks/useSupabaseData";
 
 interface RaffleCardProps {
   lottery: Lottery;
 }
 
 const RaffleCard = ({ lottery }: RaffleCardProps) => {
+  const { data: isAdmin } = useIsAdmin();
   const daysLeft = Math.max(
     0,
     Math.ceil((new Date(lottery.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -40,7 +42,9 @@ const RaffleCard = ({ lottery }: RaffleCardProps) => {
         <h3 className="mb-1.5 text-lg font-bold">{lottery.name}</h3>
         <p className="mb-3 text-sm text-muted-foreground line-clamp-2">{lottery.description}</p>
 
-        <ProgressBar sold={lottery.sold_numbers} total={lottery.total_numbers} size="sm" />
+        {isAdmin && (
+          <ProgressBar sold={lottery.sold_numbers} total={lottery.total_numbers} size="sm" />
+        )}
 
         <Link to={`/raffle/${lottery.id}`} className="mt-4 block">
           <Button className="w-full rounded-xl group/btn">

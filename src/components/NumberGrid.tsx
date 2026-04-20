@@ -3,6 +3,7 @@ import { Loader2, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsAdmin } from "@/hooks/useSupabaseData";
 
 interface NumberItem {
   id: string;
@@ -21,6 +22,7 @@ interface NumberGridProps {
 const PAGE_SIZE = 100;
 
 const NumberGrid = ({ lotteryId, pricePerNumber, onSelectionChange, maxSelect = 50 }: NumberGridProps) => {
+  const { data: isAdmin } = useIsAdmin();
   const [numbers, setNumbers] = useState<NumberItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -28,7 +30,7 @@ const NumberGrid = ({ lotteryId, pricePerNumber, onSelectionChange, maxSelect = 
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const fetchNumbers = useCallback(async (pageNum: number, searchQuery: string) => {
+  const fetchNumbers = useCallback(async (pageNum: number, searchQuery: string, adminMode: boolean) => {
     setLoading(true);
     try {
       const from = pageNum * PAGE_SIZE;
@@ -38,6 +40,11 @@ const NumberGrid = ({ lotteryId, pricePerNumber, onSelectionChange, maxSelect = 
         .from("lottery_numbers")
         .select("id, numero, status, user_id", { count: "exact" })
         .eq("lottery_id", lotteryId);
+
+      // Non-admin clients only see available numbers
+      if (!adminMode) {
+        query = query.eq("status", "disponivel");
+      }
 
       if (searchQuery) {
         query = query.like("numero", `%${searchQuery}%`);
@@ -57,8 +64,8 @@ const NumberGrid = ({ lotteryId, pricePerNumber, onSelectionChange, maxSelect = 
   }, [lotteryId]);
 
   useEffect(() => {
-    fetchNumbers(page, search);
-  }, [page, search, fetchNumbers]);
+    fetchNumbers(page, search, !!isAdmin);
+  }, [page, search, fetchNumbers, isAdmin]);
 
   // Realtime subscription for number status changes
   useEffect(() => {
@@ -71,9 +78,15 @@ const NumberGrid = ({ lotteryId, pricePerNumber, onSelectionChange, maxSelect = 
         filter: `lottery_id=eq.${lotteryId}`,
       }, (payload) => {
         const updated = payload.new as NumberItem;
-        setNumbers(prev => prev.map(n =>
-          n.id === updated.id ? { ...n, status: updated.status, user_id: updated.user_id } : n
-        ));
+        setNumbers(prev => {
+          // For non-admins, drop numbers that are no longer available
+          if (!isAdmin && updated.status !== "disponivel") {
+            return prev.filter(n => n.id !== updated.id);
+          }
+          return prev.map(n =>
+            n.id === updated.id ? { ...n, status: updated.status, user_id: updated.user_id } : n
+          );
+        });
         // Remove from selection if no longer available
         if (updated.status !== "disponivel") {
           setSelected(prev => {
@@ -86,7 +99,7 @@ const NumberGrid = ({ lotteryId, pricePerNumber, onSelectionChange, maxSelect = 
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [lotteryId]);
+  }, [lotteryId, isAdmin]);
 
   // Notify parent of selection changes
   useEffect(() => {
@@ -142,14 +155,18 @@ const NumberGrid = ({ lotteryId, pricePerNumber, onSelectionChange, maxSelect = 
           <div className="h-3 w-3 rounded bg-emerald-500/30 border border-emerald-500/50" />
           <span className="text-muted-foreground">Disponível</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded bg-amber-500/30 border border-amber-500/50" />
-          <span className="text-muted-foreground">Reservado</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded bg-red-500/30 border border-red-500/50" />
-          <span className="text-muted-foreground">Vendido</span>
-        </div>
+        {isAdmin && (
+          <>
+            <div className="flex items-center gap-1.5">
+              <div className="h-3 w-3 rounded bg-amber-500/30 border border-amber-500/50" />
+              <span className="text-muted-foreground">Reservado</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="h-3 w-3 rounded bg-red-500/30 border border-red-500/50" />
+              <span className="text-muted-foreground">Vendido</span>
+            </div>
+          </>
+        )}
         <div className="flex items-center gap-1.5">
           <div className="h-3 w-3 rounded bg-primary border border-primary" />
           <span className="text-muted-foreground">Selecionado</span>
