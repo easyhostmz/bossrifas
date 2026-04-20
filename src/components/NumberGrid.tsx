@@ -78,9 +78,15 @@ const NumberGrid = ({ lotteryId, pricePerNumber, onSelectionChange, maxSelect = 
         filter: `lottery_id=eq.${lotteryId}`,
       }, (payload) => {
         const updated = payload.new as NumberItem;
-        setNumbers(prev => prev.map(n =>
-          n.id === updated.id ? { ...n, status: updated.status, user_id: updated.user_id } : n
-        ));
+        setNumbers(prev => {
+          // For non-admins, drop numbers that are no longer available
+          if (!isAdmin && updated.status !== "disponivel") {
+            return prev.filter(n => n.id !== updated.id);
+          }
+          return prev.map(n =>
+            n.id === updated.id ? { ...n, status: updated.status, user_id: updated.user_id } : n
+          );
+        });
         // Remove from selection if no longer available
         if (updated.status !== "disponivel") {
           setSelected(prev => {
@@ -93,7 +99,7 @@ const NumberGrid = ({ lotteryId, pricePerNumber, onSelectionChange, maxSelect = 
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [lotteryId]);
+  }, [lotteryId, isAdmin]);
 
   // Notify parent of selection changes
   useEffect(() => {
